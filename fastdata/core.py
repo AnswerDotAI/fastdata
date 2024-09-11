@@ -59,7 +59,6 @@ class FastData:
             futures = [executor.submit(process_input, input_data) for input_data in inputs]
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(inputs)):
                 result = future.result()
-                if result:
-                    results.append(result)
+                results.append(result)
         
         return results
