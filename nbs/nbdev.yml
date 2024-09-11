@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "fastdata"
+  site-url: "https://AnswerDotAI.github.io/fastdata"
+  description: "Easiest and fastest way to 1B synthetic tokens"
+  repo-branch: main
+  repo-url: "https://github.com/AnswerDotAI/fastdata"
