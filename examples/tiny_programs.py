@@ -2,14 +2,13 @@ from datasets import Dataset, load_dataset
 from fastdata.core import FastData
 from pydantic import BaseModel, Field
 from typing import Literal
+from fastcore.script import *
 
 class TinyProgram(BaseModel):
     requirements: str = Field(description="A description of the requirements for the program to help the persona.")
     code: str = Field(description="The code that satisfies the requirements. Ensure it is well written and documented.")
-
-class TranslationCritique(BaseModel):
-    critique: str = Field(description="A critique of the code.")
-    score: Literal[1, 2, 3, 4, 5] = Field(description="A score of the code from 1 to 5.")
+    critique: str = Field(default="", description="A critique of the code.")
+    score: Literal[1, 2, 3, 4, 5] = Field(default=0, description="A score of the code from 1 to 5.")
 
 examples = [
     TinyProgram(
@@ -162,28 +161,30 @@ for joke in jokes:
 ]
 examples = "\n".join(f"- {example}" for example in examples)
 
-# Load personas
-personas = load_dataset("proj-persona/PersonaHub", "persona", split='train').select(range(1_000))['persona']
+class TranslationCritique(BaseModel):
+    critique: str = Field(description="A critique of the code.")
+    score: Literal[1, 2, 3, 4, 5] = Field(description="A score of the code from 1 to 5.")
 
-prompt_template = """\
+def load_personas(num_personas: int = 1000):
+    return load_dataset("proj-persona/PersonaHub", "persona", split='train').select(range(num_personas))['persona']
+
+def generate_tiny_programs(fast_data, personas, examples, model: str):
+    prompt_template = """\
 Here are some examples:
 {examples}
 
 Create requirements and the python program that satisfies them for the following persona: {persona}
 """
+    tiny_programs = fast_data.generate(
+        prompt_template=prompt_template,
+        inputs=[{"persona": persona, "examples": examples} for persona in personas],
+        response_model=TinyProgram,
+        model=model
+    )
+    return [t for t in tiny_programs if t is not None]
 
-# Generate tiny programs
-fast_data = FastData()
-tiny_programs = fast_data.generate(
-    prompt_template=prompt_template,
-    inputs=[{"persona": persona, "examples": examples} for persona in personas],
-    response_model=TinyProgram,
-    model="claude-3-haiku-20240307"
-)
-# remove Nones
-tiny_programs = [t for t in tiny_programs if t is not None]
-
-critique_template = """\
+def generate_critiques(fast_data, tiny_programs, model: str):
+    critique_template = """\
 Below is a code snippet. Evaluate its educational value for teaching programming to beginners in this language, using the additive 5-point scoring system described below. Points are accumulated based on the satisfaction of each criterion:
 
 - Add 1 point if the code is syntactically correct and runs without errors, providing a basic example of working code in the language.
@@ -202,21 +203,36 @@ After examining the code:
 - Briefly justify your total score, up to 100 words, focusing on its effectiveness as a teaching tool for beginners.
 - Conclude with the score.
 """
+    return fast_data.generate(
+        prompt_template=critique_template,
+        inputs=[{"code": t['code']} for t in tiny_programs],
+        response_model=TranslationCritique,
+        model=model
+    )
 
-critiques = fast_data.generate(
-    prompt_template=critique_template,
-    inputs=[{"code": f"{t['code']}"} for t in tiny_programs],
-    response_model=TranslationCritique,
-    model="claude-3-5-sonnet-20240620"
-)
+def update_programs_with_critiques(tiny_programs, critiques):
+    for program, critique in zip(tiny_programs, critiques):
+        if program is None or critique is None:
+            continue
+        program['critique'] = critique['critique']
+        program['score'] = critique['score']
+    return tiny_programs
 
-# Update tiny_programs with critiques
-for program, critique in zip(tiny_programs, critiques):
-    if program is None or critique is None:
-        continue
-    program['critique'] = critique['critique']
-    program['score'] = critique['score']
+@call_parse
+def main(num_personas: Param("Number of personas to use", int) = 1000,
+         program_model: Param("Model to use for generating tiny programs", str) = "claude-3-haiku-20240307",
+         critique_model: Param("Model to use for generating critiques", str) = "claude-3-5-sonnet-20240620",
+         output_dataset: Param("Name of the output dataset", str) = "answerdotai/tiny_programs",
+         private: Param("Whether to make the output dataset private", bool) = True):
+    
+    fast_data = FastData()
+    personas = load_personas(num_personas)    
+    tiny_programs = generate_tiny_programs(fast_data, personas, examples, program_model)
+    critiques = generate_critiques(fast_data, tiny_programs, critique_model)
+    updated_programs = update_programs_with_critiques(tiny_programs, critiques)
+    
+    ds = Dataset.from_list(updated_programs)
+    ds.push_to_hub(output_dataset, private=private)
 
-
-ds = Dataset.from_list(tiny_programs)
-ds.push_to_hub("answerdotai/tiny_programs", private=True)
+if __name__ == "__main__":
+    main()
