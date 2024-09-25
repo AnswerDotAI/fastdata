@@ -7,38 +7,39 @@ __all__ = ['FastData']
 
 # %% ../nbs/00_core.ipynb 3
 import concurrent.futures
-from pydantic import BaseModel
-import instructor
-import anthropic
-from tqdm import tqdm
+
+from claudette import *
+from fastcore.utils import *
 from ratelimit import limits, sleep_and_retry
+from tqdm import tqdm
 
 # %% ../nbs/00_core.ipynb 4
 class FastData:
-    def __init__(self, api_key: str | None = None, calls: int = 100, period: int = 60):
-        self.client = instructor.from_anthropic(anthropic.Anthropic(api_key=api_key))
+    def __init__(self, calls: int = 100, period: int = 60):
         self.set_rate_limit(calls, period)
 
     def set_rate_limit(self, calls: int, period: int):
         """Set a new rate limit."""
         @sleep_and_retry
         @limits(calls=calls, period=period)
-        def rate_limited_call(model: str, messages: list[dict], response_model: BaseModel):
-            return self.client.chat.completions.create(
-                model=model,
-                max_tokens=4096,
-                max_retries=1,
-                messages=messages,
-                response_model=response_model,
+        def rate_limited_call(model: str, prompt: str, response_model, sp: str):
+            chat = Chat(
+                model,
+                sp=sp,
+                tools=[response_model],
+                tool_choice={'response_model': response_model},
             )
+            chat(prompt, temp=1)
+            return chat.last_tool_result.content
         
         self._rate_limited_call = rate_limited_call
 
     def generate(self, 
                  prompt_template: str, 
                  inputs: list[dict], 
-                 response_model: BaseModel, 
+                 response_model, 
                  model: str = "claude-3-haiku-20240307",
+                 sp: str = "You are a helpful assistant.",
                  max_workers: int = 64) -> list[dict]:
         
         def process_input(input_data):
@@ -46,10 +47,11 @@ class FastData:
                 prompt = prompt_template.format(**input_data)
                 response = self._rate_limited_call(
                     model=model,
-                    messages=[{"role": "user", "content": prompt}],
+                    prompt=prompt,
                     response_model=response_model,
+                    sp=sp
                 )
-                return response.dict()
+                return response
             except Exception as e:
                 print(f"Error processing input: {e}")
                 return None

@@ -3,12 +3,20 @@ from fastdata.core import FastData
 from pydantic import BaseModel, Field
 from typing import Literal
 from fastcore.script import *
+from fastcore.utils import *
 
-class TinyProgram(BaseModel):
-    requirements: str = Field(description="A description of the requirements for the program to help the persona.")
-    code: str = Field(description="The code that satisfies the requirements. Ensure it is well written and documented.")
-    critique: str = Field(default="", description="A critique of the code.")
-    score: Literal[1, 2, 3, 4, 5] = Field(default=0, description="A score of the code from 1 to 5.")
+class TinyProgram():
+    """
+    A tiny program that is a valid python program that satisfies the requirements.
+    """
+    def __init__(
+            self,
+            requirements: str, # A description of the requirements for the program to help the persona.
+            code: str, # The code that satisfies the requirements.
+    ): store_attr()
+
+    __repr__ = basic_repr(["requirements", "code"])
+    def __str__(self): return "Program was created successfully."
 
 examples = [
     TinyProgram(
@@ -161,9 +169,18 @@ for joke in jokes:
 ]
 examples = "\n".join(f"- {example}" for example in examples)
 
-class TranslationCritique(BaseModel):
-    critique: str = Field(description="A critique of the code.")
-    score: Literal[1, 2, 3, 4, 5] = Field(description="A score of the code from 1 to 5.")
+class TinyProgramCritique():
+    """
+    A critique of a tiny program.
+    """
+    def __init__(
+            self,
+            critique: str, # A critique of the code.
+            score: Literal[1, 2, 3, 4, 5], # A score of the code from 1 to 5.
+    ): store_attr()
+
+    __repr__ = basic_repr(["critique", "score"])
+    def __str__(self): return f"Critique was created successfully."
 
 def load_personas(num_personas: int = 1000):
     return load_dataset("proj-persona/PersonaHub", "persona", split='train').select(range(num_personas))['persona']
@@ -205,8 +222,8 @@ After examining the code:
 """
     return fast_data.generate(
         prompt_template=critique_template,
-        inputs=[{"code": t['code']} for t in tiny_programs],
-        response_model=TranslationCritique,
+        inputs=[{"code": t.code} for t in tiny_programs],
+        response_model=TinyProgramCritique,
         model=model
     )
 
@@ -214,8 +231,8 @@ def update_programs_with_critiques(tiny_programs, critiques):
     for program, critique in zip(tiny_programs, critiques):
         if program is None or critique is None:
             continue
-        program['critique'] = critique['critique']
-        program['score'] = critique['score']
+        program.critique = critique.critique
+        program.score = critique.score
     return tiny_programs
 
 @call_parse
