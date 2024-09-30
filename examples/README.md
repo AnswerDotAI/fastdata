@@ -194,7 +194,7 @@ Make sure you've installed `fastdata` with the following command from the root o
 pip install -e .
 ```
 
-then if you will be training a model, install the following dependencies:
+then if you will be training a model, install the following dependencies inside the `examples` folder:
 
 ```bash
 pip install -r requirements.txt
