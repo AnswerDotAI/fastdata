@@ -15,30 +15,32 @@ from tqdm import tqdm
 
 # %% ../nbs/00_core.ipynb 4
 class FastData:
-    def __init__(self, calls: int = 100, period: int = 60):
+    def __init__(self,
+                 model: str = "claude-3-haiku-20240307",
+                 calls: int = 100,
+                 period: int = 60):
+        self.cli = Client(model)
         self.set_rate_limit(calls, period)
 
     def set_rate_limit(self, calls: int, period: int):
         """Set a new rate limit."""
         @sleep_and_retry
         @limits(calls=calls, period=period)
-        def rate_limited_call(model: str, prompt: str, response_model, sp: str):
-            chat = Chat(
-                model,
-                sp=sp,
-                tools=[response_model],
-                tool_choice={'response_model': response_model},
-            )
-            chat(prompt, temp=1)
-            return chat.last_tool_result.content
+        def rate_limited_call(prompt: str, schema, sp: str):
+            return self.cli.structured(
+                prompt,
+                ns=globals(),
+                temp=1,
+                tools=schema,
+                tool_choice=schema
+            )[0]
         
         self._rate_limited_call = rate_limited_call
 
     def generate(self, 
                  prompt_template: str, 
                  inputs: list[dict], 
-                 response_model, 
-                 model: str = "claude-3-haiku-20240307",
+                 schema,
                  sp: str = "You are a helpful assistant.",
                  max_workers: int = 64) -> list[dict]:
         
@@ -46,9 +48,8 @@ class FastData:
             try:
                 prompt = prompt_template.format(**input_data)
                 response = self._rate_limited_call(
-                    model=model,
                     prompt=prompt,
-                    response_model=response_model,
+                    schema=schema,
                     sp=sp
                 )
                 return response
