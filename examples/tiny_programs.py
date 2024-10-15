@@ -1,19 +1,11 @@
 from datasets import Dataset, load_dataset
 from fastdata.core import FastData
-from pydantic import BaseModel, Field
-from typing import Literal
 from fastcore.script import *
 from fastcore.utils import *
 
 class TinyProgram(BasicRepr):
-    """
-    A tiny program that is a valid python program that satisfies the requirements.
-    """
-    def __init__(
-            self,
-            requirements: str, # A description of the requirements for the program to help the persona.
-            code: str, # The code that satisfies the requirements.
-    ): store_attr()
+    "A tiny program that is a valid python program that satisfies the requirements."
+    def __init__(self,requirements: str,code: str): store_attr()
 
 examples = [
     TinyProgram(
@@ -167,16 +159,10 @@ for joke in jokes:
 examples = "\n".join(f"- {example}" for example in examples)
 
 class TinyProgramCritique(BasicRepr):
-    """
-    A critique of a tiny program.
-    """
-    def __init__(
-            self,
-            critique: str, # A critique of the code.
-            score: Literal[1, 2, 3, 4, 5], # A score of the code from 1 to 5.
-    ): store_attr()
+    "A critique of a tiny program."
+    def __init__(self,critique: str,score: int): store_attr()
 
-def load_personas(num_personas: int = 1000):
+def load_personas(num_personas: int = 1_000):
     return load_dataset("proj-persona/PersonaHub", "persona", split='train').select(range(num_personas))['persona']
 
 def generate_tiny_programs(fast_data, personas, examples, sp):
@@ -224,15 +210,19 @@ After examining the code:
     )
 
 def update_programs_with_critiques(tiny_programs, critiques):
+    programs = []
     for program, critique in zip(tiny_programs, critiques):
-        if program is None or critique is None:
-            continue
-        program.critique = critique.critique
-        program.score = critique.score
-    return tiny_programs
+        if program is None or critique is None: continue
+        programs.append({
+            "requirements": program.requirements,
+            "code": program.code,
+            "critique": critique.critique,
+            "score": critique.score
+        })
+    return programs
 
 @call_parse
-def main(num_personas: Param("Number of personas to use", int) = 1000,
+def main(num_personas: Param("Number of personas to use", int) = 1_000,
          program_model: Param("Model to use for generating tiny programs", str) = "claude-3-haiku-20240307",
          program_sp: Param("System prompt for generating tiny programs", str) = "You are a helpful assistant for generating python programs.",
          critique_model: Param("Model to use for generating critiques", str) = "claude-3-5-sonnet-20240620",
@@ -249,6 +239,3 @@ def main(num_personas: Param("Number of personas to use", int) = 1000,
     
     ds = Dataset.from_list(updated_programs)
     ds.push_to_hub(output_dataset, private=private)
-
-if __name__ == "__main__":
-    main()
