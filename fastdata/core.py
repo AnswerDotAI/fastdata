@@ -6,12 +6,12 @@
 __all__ = ['FastData']
 
 # %% ../nbs/00_core.ipynb 3
-import concurrent.futures
-
 from claudette import *
 from fastcore.utils import *
 from ratelimit import limits, sleep_and_retry
 from tqdm import tqdm
+
+import concurrent.futures
 
 # %% ../nbs/00_core.ipynb 4
 class FastData:
@@ -26,10 +26,10 @@ class FastData:
         """Set a new rate limit."""
         @sleep_and_retry
         @limits(calls=calls, period=period)
-        def rate_limited_call(prompt: str, schema, sp: str):
+        def rate_limited_call(prompt: str, schema, temp: float, sp: str):
             return self.cli.structured(
                 prompt,
-                temp=1,
+                temp=temp,
                 tools=schema,
             )[0]
         
@@ -39,18 +39,19 @@ class FastData:
                  prompt_template: str, 
                  inputs: list[dict], 
                  schema,
+                 temp: float = 1.,
                  sp: str = "You are a helpful assistant.",
                  max_workers: int = 64) -> list[dict]:
         
         def process_input(input_data):
             try:
                 prompt = prompt_template.format(**input_data)
-                response = self._rate_limited_call(
+                return self._rate_limited_call(
                     prompt=prompt,
                     schema=schema,
+                    temp=temp,
                     sp=sp
                 )
-                return response
             except Exception as e:
                 print(f"Error processing input: {e}")
                 return None
