@@ -172,7 +172,7 @@ I only kept a score of 4 and 5 as high quality data for both the tiny python pro
 
 ### Key findings from the experiment:
 
-1. Training on synthetic data is better than training on random GitHub programs, even with quality filtering (TinyPrograms vs The Stack, and TinyPrograms Filtered vs The Stack Filtered).
+1. Training on synthetic data is better than training on random GitHub programs when performing quality filtering, i.e., TinyPrograms Filtered vs The Stack Filtered.
 2. Only high-quality synthetic data (TinyPrograms Filtered) improve performance over the baseline.
 3. All other setups degrade performance. High-quality Python files from the Stack show the biggest drop. This warrants further investigation. Possible explanations include:
    - The scoring system may not be as effective for GitHub programs as it is for synthetic ones.
