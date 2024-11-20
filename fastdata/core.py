@@ -169,15 +169,19 @@ class FastData:
                 private=private,
                 token=token,
             )
-            DatasetCard(
-                DATASET_CARD_TEMPLATE.format(
-                    title=repo_id,
-                    model_id=self.cli.model,
-                    system_prompt=sp,
-                    prompt_template=prompt_template,
-                    sample_input=inputs[:2],
-                )
-            ).save(dataset_dir / "README.md")
+
+            readme_path = dataset_dir / "README.md"
+
+            if not readme_path.exists():
+                DatasetCard(
+                    DATASET_CARD_TEMPLATE.format(
+                        title=repo_id,
+                        model_id=self.cli.model,
+                        system_prompt=sp,
+                        prompt_template=prompt_template,
+                        sample_input=inputs[:2],
+                    )
+                ).save(readme_path)
 
             results = []
             total_inputs = len(inputs)
