@@ -215,8 +215,6 @@ class FastData:
                                 results.clear()
                     scheduler._push_to_hub()
                     scheduler.stop()
-        except Exception as e:
-            raise e
         finally:
             if delete_files_after:
                 shutil.rmtree(dataset_dir)
