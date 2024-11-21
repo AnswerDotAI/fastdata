@@ -7,5 +7,8 @@ d = { 'settings': { 'branch': 'main',
                 'lib_path': 'fastdata'},
   'syms': { 'fastdata.core': { 'fastdata.core.FastData': ('core.html#fastdata', 'fastdata/core.py'),
                                'fastdata.core.FastData.__init__': ('core.html#fastdata.__init__', 'fastdata/core.py'),
+                               'fastdata.core.FastData._process_input': ('core.html#fastdata._process_input', 'fastdata/core.py'),
+                               'fastdata.core.FastData._save_results': ('core.html#fastdata._save_results', 'fastdata/core.py'),
+                               'fastdata.core.FastData._set_rate_limit': ('core.html#fastdata._set_rate_limit', 'fastdata/core.py'),
                                'fastdata.core.FastData.generate': ('core.html#fastdata.generate', 'fastdata/core.py'),
-                               'fastdata.core.FastData.set_rate_limit': ('core.html#fastdata.set_rate_limit', 'fastdata/core.py')}}}
+                               'fastdata.core.FastData.generate_to_hf': ('core.html#fastdata.generate_to_hf', 'fastdata/core.py')}}}
