@@ -129,7 +129,7 @@ class FastData:
         temp: float = 1.0,
         sp: str = "You are a helpful assistant.",
         max_workers: int = 64,
-        save_interval: int = 100,
+        max_items_per_file: int = 100,
         commit_every: Union[int, float] = 5,
         private: bool = False,
         token: Optional[str] = None,
@@ -137,6 +137,8 @@ class FastData:
     ) -> tuple[str, list[dict]]:
         """
         Generate data based on a prompt template and schema, and save it to Hugging Face dataset repository.
+        This function writes the generated records to multiple files, each containing a maximum of `max_items_per_file` records. 
+        Due to the multi-threaded execution of the function, the order of the records in the files is not guaranteed to match the order of the input data. 
 
         Args:
             prompt_template (str): The template for generating prompts.
@@ -146,7 +148,7 @@ class FastData:
             temp (float, optional): The temperature for generation. Defaults to 1.0.
             sp (str, optional): The system prompt for the assistant. Defaults to "You are a helpful assistant.".
             max_workers (int, optional): The maximum number of worker threads. Defaults to 64.
-            save_interval (int, optional): The batch size at which to save the results. Defaults to 100.
+            max_items_per_file (int, optional): The maximum number of items to save in each file. Defaults to 100.
             commit_every (Union[int, float], optional): The number of minutes between each commit. Defaults to 5.
             private (bool, optional): Whether the repository is private. Defaults to False.
             token (Optional[str], optional): The token to use to commit to the repo. Defaults to the token saved on the machine.
@@ -201,24 +203,18 @@ class FastData:
                         )
                         for input_data in inputs
                     ]
-                    completed = 0
 
+                    current_file = data_dir / f"train-{uuid4()}.jsonl"
                     for completed_future in concurrent.futures.as_completed(futures):
                         result = completed_future.result()
                         if result is not None:
                             results.append(result)
-                        completed += 1
+                            with scheduler.lock:
+                                self._save_results(results, current_file)
                         pbar.update(1)
-
-                        if completed % save_interval == 0 or completed == total_inputs:
-                            if results:
-                                with scheduler.lock:
-                                    self._save_results(
-                                        results, data_dir / f"train-{uuid4()}.jsonl"
-                                    )
-                                results.clear()
-                    scheduler._push_to_hub()
-                    scheduler.stop()
+                        if len(results) >= max_items_per_file:
+                            current_file = data_dir / f"train-{uuid4()}.jsonl"
+                            results.clear()
         finally:
             if delete_files_after:
                 shutil.rmtree(dataset_dir)

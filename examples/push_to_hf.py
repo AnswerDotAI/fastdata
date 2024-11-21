@@ -38,7 +38,7 @@ repo_id, translations = fast_data.generate_to_hf(
     inputs=inputs,
     schema=Translation,
     repo_id=dataset_name,
-    save_interval=4,
+    max_items_per_file=4,
 )
 print(f"A new repository has been create on {repo_id}")
 print(translations)
