@@ -216,6 +216,7 @@ class FastData:
                             current_file = data_dir / f"train-{uuid4()}.jsonl"
                             results.clear()
         finally:
+            scheduler.trigger().result()  # force upload last result
             if delete_files_after:
                 shutil.rmtree(dataset_dir)
 
