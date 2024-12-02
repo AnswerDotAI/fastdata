@@ -131,7 +131,7 @@ class FastData:
         max_workers: int = 64,
         max_items_per_file: int = 100,
         commit_every: Union[int, float] = 5,
-        private: bool = False,
+        private: Optional[bool] = None,
         token: Optional[str] = None,
         delete_files_after: bool = True,
     ) -> tuple[str, list[dict]]:
@@ -150,7 +150,7 @@ class FastData:
             max_workers (int, optional): The maximum number of worker threads. Defaults to 64.
             max_items_per_file (int, optional): The maximum number of items to save in each file. Defaults to 100.
             commit_every (Union[int, float], optional): The number of minutes between each commit. Defaults to 5.
-            private (bool, optional): Whether the repository is private. Defaults to False.
+            private (bool, optional): Whether to make the repo private. If `None` (default), the repo will be public unless the organization's default is private. This value is ignored if the repo already exists.
             token (Optional[str], optional): The token to use to commit to the repo. Defaults to the token saved on the machine.
             delete_files_after (bool, optional): Whether to delete files after processing. Defaults to True.
 
